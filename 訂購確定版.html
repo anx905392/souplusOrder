@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>補湯叫貨系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --primary-color: #2c3e50; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #525659; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 操作面板 */
+        .control-panel { background: white; width: 900px; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .input-group { display: flex; gap: 8px; margin-bottom: 15px; }
+        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .btn-group { display: flex; gap: 10px; }
+        .btn-add { background: #27ae60; color: white; border: none; padding: 0 20px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-pdf { background: #e67e22; color: white; border: none; padding: 12px; flex: 1; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; }
+        .btn-jpg { background: #d35400; color: white; border: none; padding: 12px; flex: 1; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; }
+
+        /* A4 模板樣式 */
+        #word-template { 
+            background: white; 
+            width: 210mm; 
+            padding: 5mm 20mm 10mm 20mm; /* 縮減上下留白 */
+            margin: 0 auto; 
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .doc-header { text-align: center; border-bottom: 3px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 12px; }
+        .doc-title { font-size: 32px; letter-spacing: 6px; color: var(--primary-color); margin: 0; font-weight: 900; }
+        
+        .doc-info { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; width: 100%; font-weight: bold; }
+        
+        /* 縮減分類標題的高度與間距 */
+        .category-section { width: 100%; margin-bottom: 15px; }
+        .category-title { background-color: #f8f9fa; padding: 5px 12px; font-weight: bold; border-left: 6px solid var(--primary-color); margin-bottom: 5px; font-size: 16px; border-bottom: 1px solid #ddd; text-align: left; color: #1a252f; }
+        
+        /* 表格高度關鍵：調低 padding */
+        .doc-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            table-layout: fixed; 
+            border: 1px solid #000;
+        }
+        .doc-table th, .doc-table td { 
+            border: 1px solid #000;
+            padding: 6px 8px; /* 從 12px 縮減為 6px */
+            font-size: 17px; /* 稍微縮小 1px 以配合高度 */
+            text-align: center;
+            word-wrap: break-word;
+        }
+        .doc-table th { background: #f2f2f2; font-weight: bold; }
+        
+        .qty-text { font-size: 18px; font-weight: bold; }
+        .stock-text { color: #555; font-size: 17px; }
+
+        .no-print-btn { color: #e74c3c; cursor: pointer; border: none; background: none; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h3 style="margin-top:0">📋 補湯叫貨系統</h3>
+        <div class="input-group">
+            <select id="item-select" style="flex: 2;">
+                <option value="">-- 選擇產品 --</option>
+                <optgroup label="藥材類">
+                    <option value="藥膳排骨湯包">藥膳排骨湯包</option>
+                    <option value="十全大補湯包">十全大補湯包</option>
+                    <option value="四神湯料包">四神湯料包</option>
+                    <option value="玉竹清潤包">玉竹清潤包</option>
+                </optgroup>
+                <optgroup label="乾貨類">
+                    <option value="特製中藥粉">特製中藥粉</option>
+                    <option value="純釀醬油">純釀醬油</option>
+                </optgroup>
+                <optgroup label="餐具類">
+                    <option value="專用外帶紙袋">專用外帶紙袋</option>
+                </optgroup>
+                <optgroup label="產品類">
+                    <option value="專用外帶紙袋">專用外帶紙袋</option>
+                </optgroup>
+            </select>
+
+            <input type="number" id="item-stock" placeholder="庫存量" style="flex: 0.8;">
+            <input type="number" id="item-qty" value="1" min="1" style="flex: 0.8;">
+
+            <select id="item-unit" style="flex: 0.8;">
+                <option value="包">包</option>
+                <option value="箱">箱</option>
+                <option value="桶">桶</option>
+                <option value="罐">罐</option>
+                <option value="斤">斤</option>
+                <option value="件">件</option>
+                <option value="個">個</option>
+            </select>
+
+            <button class="btn-add" onclick="addItem()">＋ 加入</button>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn-pdf" onclick="exportPDF()">匯出正式 PDF</button>
+            <button class="btn-jpg" onclick="exportJPG()">匯出 JPG 圖片</button>
+        </div>
+    </div>
+
+    <div id="word-template">
+        <div class="doc-header">
+            <h1 class="doc-title">叫 貨 單</h1>
+        </div>
+
+        <div class="doc-info">
+            <div><strong>申請店別：</strong> 元生補湯</div>
+            <div><strong>叫貨日期：</strong> <span id="current-date"></span></div>
+        </div>
+
+        <div id="tables-container">
+            <p style="color: #999; text-align: center; margin-top: 50px; font-size: 20px;">請從上方選單加入產品...</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('zh-TW');
+        let orderData = {}; 
+
+        function addItem() {
+            const select = document.getElementById('item-select');
+            const stock = document.getElementById('item-stock').value;
+            const qty = document.getElementById('item-qty').value;
+            const unit = document.getElementById('item-unit').value;
+            const name = select.value;
+            
+            if (!name) return alert("請先選擇品項");
+
+            const category = select.options[select.selectedIndex].parentElement.label;
+            if (!orderData[category]) orderData[category] = [];
+
+            const displayStock = stock === "" ? "--" : stock;
+
+            orderData[category].push({ 
+                name, 
+                stock: displayStock, 
+                qty, 
+                unit 
+            });
+
+            document.getElementById('item-stock').value = "";
+            renderTables();
+        }
+
+        function removeItem(category, index) {
+            orderData[category].splice(index, 1);
+            if (orderData[category].length === 0) delete orderData[category];
+            renderTables();
+        }
+
+        function renderTables() {
+            const container = document.getElementById('tables-container');
+            container.innerHTML = '';
+            
+            const categories = Object.keys(orderData);
+            if (categories.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; margin-top: 50px; font-size: 20px;">請從上方選單加入產品...</p>';
+                return;
+            }
+
+            categories.forEach(cat => {
+                let section = document.createElement('div');
+                section.className = 'category-section';
+                section.innerHTML = `
+                    <div class="category-title">類別：${cat}</div>
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 10%;">項次</th>
+                                <th style="width: 40%;">品項名稱</th>
+                                <th style="width: 20%;">現有庫存</th>
+                                <th style="width: 20%;">訂購數量</th>
+                                <th style="width: 10%;" class="no-print">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${orderData[cat].map((item, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td style="text-align: left;">${item.name}</td>
+                                    <td class="stock-text">${item.stock}</td>
+                                    <td><span class="qty-text">${item.qty}</span> ${item.unit}</td>
+                                    <td class="no-print">
+                                        <button class="no-print-btn" onclick="removeItem('${cat}', ${index})">🗑</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(section);
+            });
+        }
+
+        function prepareForExport() {
+            const noPrintElements = document.querySelectorAll('.no-print, .no-print-btn');
+            noPrintElements.forEach(el => el.style.display = 'none');
+            return noPrintElements;
+        }
+
+        function finalizeExport(elements) {
+            elements.forEach(el => el.style.display = '');
+        }
+
+        function exportPDF() {
+            if (Object.keys(orderData).length === 0) return alert("請先加入品項");
+            const elements = prepareForExport();
+            const element = document.getElementById('word-template');
+
+            const opt = {
+                margin: 0,
+                filename: `叫貨單_${new Date().toISOString().slice(0,10)}.pdf`,
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { scale: 2, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: 'avoid-all' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => finalizeExport(elements));
+        }
+
+        function exportJPG() {
+            if (Object.keys(orderData).length === 0) return alert("請先加入品項");
+            const elements = prepareForExport();
+            const element = document.getElementById('word-template');
+
+            html2canvas(element, {
+                scale: 3, 
+                useCORS: true,
+                backgroundColor: "#ffffff"
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `叫貨單_${new Date().toISOString().slice(0,10)}.jpg`;
+                link.href = canvas.toDataURL("image/jpeg", 0.9);
+                link.click();
+                finalizeExport(elements);
+            });
+        }
+    </script>
+</body>
+</html>
