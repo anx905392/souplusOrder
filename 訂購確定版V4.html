@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>元生補湯叫貨系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --primary-color: #2c3e50; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #525659; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 操作面板 */
+        .control-panel { background: white; width: 95%; max-width: 900px; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .category-row { 
+            display: flex; 
+            flex-wrap: wrap;
+            align-items: center; 
+            gap: 8px; 
+            padding: 12px; 
+            margin-bottom: 10px; 
+            background: #f8f9fa; 
+            border-radius: 5px; 
+            border: 1px solid #eee;
+        }
+        .cat-label { width: 70px; font-weight: bold; color: var(--primary-color); font-size: 16px; }
+        
+        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+        .input-item { flex: 1; min-width: 220px; }
+        .input-small { width: 65px; }
+        .input-unit { width: 75px; }
+
+        .btn-add { background: #27ae60; color: white; border: none; padding: 10px 18px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 15px; }
+        .btn-add:active { background: #219150; transform: scale(0.98); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px; }
+        .btn-pdf { background: #e67e22; color: white; border: none; padding: 15px; flex: 1; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; }
+        .btn-jpg { background: #d35400; color: white; border: none; padding: 15px; flex: 1; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; }
+
+        /* A4 模板樣式 */
+        #word-template { 
+            background: white; 
+            width: 210mm; 
+            padding: 10mm 15mm; 
+            margin: 0 auto; 
+            box-sizing: border-box;
+            color: #000;
+        }
+        .doc-header { text-align: center; border-bottom: 3px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 15px; }
+        .doc-title { font-size: 32px; letter-spacing: 6px; color: var(--primary-color); margin: 0; font-weight: 900; }
+        .doc-info { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; font-weight: bold; }
+        
+        .category-section { width: 100%; margin-bottom: 20px; }
+        .category-title { background-color: #f2f2f2; padding: 6px 12px; font-weight: bold; border-left: 6px solid var(--primary-color); margin-bottom: 5px; font-size: 16px; border: 1px solid #ccc; color: #1a252f; }
+        
+        .doc-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
+        .doc-table th, .doc-table td { border: 1px solid #000; padding: 8px; font-size: 15px; text-align: center; }
+        .doc-table th { background: #eee; }
+        .qty-text { font-size: 16px; font-weight: bold; }
+        .no-print-btn { color: #e74c3c; cursor: pointer; border: none; background: none; font-size: 20px; padding: 0 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h3 style="margin:0 0 15px 0; text-align:center;">📋 元生補湯叫貨系統</h3>
+        
+        <div id="ui-container"></div>
+        
+        <div class="btn-group">
+            <button class="btn-pdf" onclick="exportPDF()">正式 PDF 下載</button>
+            <button class="btn-jpg" onclick="exportJPG()">匯出 JPG 圖片</button>
+        </div>
+    </div>
+
+    <div id="word-template">
+        <div class="doc-header">
+            <h1 class="doc-title">物 料 叫 貨 單</h1>
+        </div>
+        <div class="doc-info">
+            <div><strong>店別：</strong> 元生補湯</div>
+            <div><strong>日期：</strong> <span id="current-date"></span></div>
+        </div>
+        <div id="tables-container">
+            <p style="color: #999; text-align: center; margin-top: 30px; font-size: 18px;">請選擇品項並點擊「＋」加入清單</p>
+        </div>
+    </div>
+
+    <script>
+        const unitMap = {
+            "藥膳排骨湯包":"包","十全大補湯包":"包","四神湯料包":"包","玉竹清潤包":"包",
+            "大成沙拉油":"桶","萬家香醬油":"箱","萬家香油膏":"箱","萬家香香菇素蠔油":"桶","米霖":"罐","哈哈辣豆瓣醬":"罐","味島鰹魚調味料":"盒","煉乳":"罐","鮮奶油":"罐","吉利丁片":"盒","鹽巴":"包","料理米酒":"箱","香油":"桶","蔥酥":"包","蒜酥":"包","柴魚片":"包","黑陰豆鼓":"桶","朝日白蔭豆鼓":"桶","糖砂糖":"箱","冰糖":"箱","黑糖":"包","太白粉":"包","中筋麵粉":"包","麥芽糖":"桶","豆腐乳":"罐","杏仁甜酒":"罐","洋菜粉":"包",
+            "8304-盒":"箱","8305-蓋":"箱","1000-牛皮碗":"箱","1000-凸蓋":"箱","1000-平蓋":"箱","750-碗":"箱","750-蓋":"箱","500-碗":"箱","260-碗(新玉山)":"箱","260-蓋(新玉山)":"箱","YS-120蓋":"箱","140-杯":"箱","75-蓋":"箱","雙生筷":"箱","茶匙(大)":"包","單包湯匙":"箱","點心盒":"條","吐司盒":"條","方形蒸籠紙":"包","醬料杯":"個","2斤袋":"包","3斤袋":"包","半斤袋":"包","嘉美清潔包特大":"包","嘉美垃圾袋小紅":"包","垃圾袋黑":"包","南亞保鮮膜(短)":"支","保鮮膜(長)":"支","鋁箔(短)":"支","雙色手套":"雙","紫色手套":"雙","膠圈":"包","紙包牙籤":"盒","百利海綿布":"包","濾網(綠色)":"包","白毛巾":"包","12x40pp膠帶":"捲","48x80pp膠帶":"捲","小瓦斯罐":"罐","漂白水":"桶","沙拉脫":"箱","濕紙巾":"箱","扇形紙":"箱","優活小抽":"箱","邦尼熊擦手紙":"箱","舒潔擦手紙":"箱","6杯袋":"袋","4杯袋":"袋","2杯袋":"袋","洗碗機乾劑":"桶","消毒酒精":"桶"
+        };
+
+        const products = {
+            "藥材類": ["藥膳排骨湯包", "十全大補湯包", "四神湯料包", "玉竹清潤包"],
+            "乾貨類": ["大成沙拉油", "萬家香醬油", "萬家香油膏", "萬家香香菇素蠔油", "米霖", "哈哈辣豆瓣醬", "味島鰹魚調味料", "煉乳", "鮮奶油", "吉利丁片", "鹽巴", "料理米酒", "香油", "蔥酥", "蒜酥", "柴魚片", "黑陰豆鼓", "朝日白蔭豆鼓", "糖砂糖", "冰糖", "黑糖", "太白粉", "中筋麵粉", "麥芽糖", "豆腐乳", "杏仁甜酒", "洋菜粉"],
+            "餐具類": ["8304-盒", "8305-蓋", "1000-牛皮碗", "1000-凸蓋", "1000-平蓋", "750-碗", "750-蓋", "500-碗", "260-碗(新玉山)", "260-蓋(新玉山)", "YS-120蓋", "140-杯", "75-蓋", "雙生筷", "茶匙(大)", "單包湯匙", "點心盒", "吐司盒", "方形蒸籠紙", "醬料杯", "耐熱袋7x9訂做", "2斤袋", "3斤袋", "半斤袋", "嘉美清潔包特大", "嘉美垃圾袋小紅", "垃圾袋黑", "南亞保鮮膜(短)", "保鮮膜(長)", "鋁箔(短)", "雙色手套", "紫色手套", "膠圈", "紙包牙籤", "百利海綿布", "濾網(綠色)", "白毛巾", "12x40pp膠帶", "48x80pp膠帶", "小瓦斯罐", "漂白水", "沙拉脫", "濕紙巾", "扇形紙", "優活小抽", "邦尼熊擦手紙", "舒潔擦手紙", "6杯袋", "4杯袋", "2杯袋", "洗碗機乾劑", "消毒酒精"],
+            "產品類": ["店用加熱包", "冷凍禮盒"]
+        };
+
+        const units = ["包", "箱", "桶", "罐", "盒", "條", "個", "支", "雙", "捲", "袋", "斤", "瓶", "組"];
+
+        function initUI() {
+            const container = document.getElementById('ui-container');
+            Object.keys(products).forEach(cat => {
+                const row = document.createElement('div');
+                row.className = 'category-row';
+                row.innerHTML = `
+                    <div class="cat-label">${cat}</div>
+                    <select id="select-${cat}" class="input-item" onchange="autoUnit('${cat}')">
+                        <option value="">-- 選擇品項 --</option>
+                        ${products[cat].map(p => `<option value="${p}">${p}</option>`).join('')}
+                    </select>
+                    <input type="number" id="stock-${cat}" placeholder="庫存" class="input-small">
+                    <input type="number" id="qty-${cat}" value="1" class="input-small">
+                    <select id="unit-${cat}" class="input-unit">
+                        ${units.map(u => `<option value="${u}">${u}</option>`).join('')}
+                    </select>
+                    <button class="btn-add" onclick="addItem('${cat}')">＋</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function autoUnit(cat) {
+            const val = document.getElementById(`select-${cat}`).value;
+            if(unitMap[val]) document.getElementById(`unit-${cat}`).value = unitMap[val];
+        }
+
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('zh-TW');
+        let orderData = {}; 
+
+        function addItem(category) {
+            const name = document.getElementById(`select-${category}`).value;
+            const stock = document.getElementById(`stock-${category}`).value;
+            const qty = document.getElementById(`qty-${category}`).value;
+            const unit = document.getElementById(`unit-${category}`).value;
+            if (!name) return alert("請選擇品項！");
+            if (!orderData[category]) orderData[category] = [];
+            orderData[category].push({ name, stock: stock===""?"--":stock, qty, unit });
+            document.getElementById(`stock-${category}`).value = "";
+            renderTables();
+        }
+
+        function removeItem(category, index) {
+            orderData[category].splice(index, 1);
+            if (orderData[category].length === 0) delete orderData[category];
+            renderTables();
+        }
+
+        function renderTables() {
+            const container = document.getElementById('tables-container');
+            container.innerHTML = '';
+            const cats = Object.keys(orderData);
+            if (cats.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; margin-top: 30px; font-size: 18px;">請選擇品項並點擊「＋」加入清單</p>';
+                return;
+            }
+            cats.forEach(cat => {
+                let div = document.createElement('div');
+                div.className = 'category-section';
+                div.innerHTML = `
+                    <div class="category-title">類別：${cat}</div>
+                    <table class="doc-table">
+                        <thead><tr><th style="width:8%">序</th><th style="width:47%">品項名稱</th><th style="width:15%">庫存</th><th style="width:20%">叫貨量</th><th style="width:10%" class="no-print">✕</th></tr></thead>
+                        <tbody>${orderData[cat].map((item, i) => `
+                            <tr><td>${i+1}</td><td style="text-align:left">${item.name}</td><td>${item.stock}</td><td><span class="qty-text">${item.qty}</span> ${item.unit}</td><td class="no-print"><button class="no-print-btn" onclick="removeItem('${cat}',${i})">🗑</button></td></tr>
+                        `).join('')}</tbody>
+                    </table>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleNoPrint(s) { document.querySelectorAll('.no-print').forEach(el => el.style.display = s ? '' : 'none'); }
+
+        function exportPDF() {
+            if (Object.keys(orderData).length === 0) return alert("訂單是空的！");
+            toggleNoPrint(false);
+            html2pdf().set({ margin: 5, filename: `元生叫貨單_${new Date().toISOString().slice(0,10)}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(document.getElementById('word-template')).save().then(() => toggleNoPrint(true));
+        }
+
+        function exportJPG() {
+            if (Object.keys(orderData).length === 0) return alert("訂單是空的！");
+            toggleNoPrint(false);
+            html2canvas(document.getElementById('word-template'), { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+                const a = document.createElement('a'); a.download = `元生叫貨單_${new Date().toISOString().slice(0,10)}.jpg`; a.href = canvas.toDataURL("image/jpeg", 0.9); a.click(); toggleNoPrint(true);
+            });
+        }
+
+        initUI();
+    </script>
+</body>
+</html>
