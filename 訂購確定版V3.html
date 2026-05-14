@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>補湯叫貨系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --primary-color: #2c3e50; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #525659; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 操作面板 */
+        .control-panel { background: white; width: 95%; max-width: 900px; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .category-row { 
+            display: flex; 
+            flex-wrap: wrap;
+            align-items: center; 
+            gap: 8px; 
+            padding: 12px; 
+            margin-bottom: 10px; 
+            background: #f8f9fa; 
+            border-radius: 5px; 
+            border: 1px solid #eee;
+        }
+        .cat-label { width: 70px; font-weight: bold; color: var(--primary-color); font-size: 16px; }
+        
+        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+        .input-item { flex: 1; min-width: 200px; }
+        .input-small { width: 65px; }
+        .input-unit { width: 75px; }
+
+        .btn-add { background: #27ae60; color: white; border: none; padding: 10px 18px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 15px; }
+        .btn-add:active { background: #219150; transform: scale(0.98); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px; }
+        .btn-pdf { background: #e67e22; color: white; border: none; padding: 15px; flex: 1; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; }
+        .btn-jpg { background: #d35400; color: white; border: none; padding: 15px; flex: 1; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; }
+
+        /* A4 模板樣式 */
+        #word-template { 
+            background: white; 
+            width: 210mm; 
+            padding: 10mm 15mm; 
+            margin: 0 auto; 
+            box-sizing: border-box;
+            color: #000;
+        }
+        .doc-header { text-align: center; border-bottom: 3px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 15px; }
+        .doc-title { font-size: 32px; letter-spacing: 6px; color: var(--primary-color); margin: 0; font-weight: 900; }
+        .doc-info { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; font-weight: bold; }
+        
+        .category-section { width: 100%; margin-bottom: 20px; }
+        .category-title { background-color: #f2f2f2; padding: 6px 12px; font-weight: bold; border-left: 6px solid var(--primary-color); margin-bottom: 5px; font-size: 16px; border: 1px solid #ccc; color: #1a252f; }
+        
+        .doc-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
+        .doc-table th, .doc-table td { border: 1px solid #000; padding: 8px; font-size: 15px; text-align: center; }
+        .doc-table th { background: #eee; }
+        .qty-text { font-size: 16px; font-weight: bold; }
+        .no-print-btn { color: #e74c3c; cursor: pointer; border: none; background: none; font-size: 20px; padding: 0 5px; }
+
+        /* 手機隱藏列印模板，僅下載時調用 */
+        #word-template { display: block; }
+        .off-screen { position: absolute; left: -9999px; top: -9999px; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h3 style="margin:0 0 15px 0; text-align:center;">📋 元生補湯叫貨系統</h3>
+        
+        <div class="category-row">
+            <div class="cat-label">藥材類</div>
+            <select id="select-藥材類" class="input-item">
+                <option value="">-- 選擇品項 --</option>
+                <option value="藥膳排骨湯包">藥膳排骨湯包</option>
+                <option value="十全大補湯包">十全大補湯包</option>
+                <option value="四神湯料包">四神湯料包</option>
+                <option value="玉竹清潤包">玉竹清潤包</option>
+            </select>
+            <input type="number" id="stock-藥材類" placeholder="庫存" class="input-small">
+            <input type="number" id="qty-藥材類" value="1" class="input-small">
+            <select id="unit-藥材類" class="input-unit">
+                <option value="包">包</option><option value="箱">箱</option>
+            </select>
+            <button class="btn-add" onclick="addItem('藥材類')">＋</button>
+        </div>
+
+        <div class="category-row">
+            <div class="cat-label">乾貨類</div>
+            <select id="select-乾貨類" class="input-item">
+                <option value="">-- 選擇品項 --</option>
+                <option value="大成沙拉油">大成沙拉油</option><option value="萬家香醬油">萬家香醬油</option>
+                <option value="萬家香油膏">萬家香油膏</option><option value="萬家香香菇素蠔油">萬家香香菇素蠔油</option>
+                <option value="米霖">米霖</option><option value="哈哈辣豆瓣醬">哈哈辣豆瓣醬</option>
+                <option value="味島鰹魚調味料">味島鰹魚調味料</option><option value="煉乳">煉乳</option>
+                <option value="鮮奶油">鮮奶油</option><option value="吉利丁片">吉利丁片</option>
+                <option value="鹽巴">鹽巴</option><option value="料理米酒">料理米酒</option>
+                <option value="香油">香油</option><option value="蔥酥">蔥酥</option>
+                <option value="蒜酥">蒜酥</option><option value="柴魚片">柴魚片</option>
+                <option value="黑陰豆鼓">黑陰豆鼓</option><option value="朝日白蔭豆鼓">朝日白蔭豆鼓</option>
+                <option value="糖砂糖">糖砂糖</option><option value="冰糖">冰糖</option>
+                <option value="黑糖">黑糖</option><option value="太白粉">太白粉</option>
+                <option value="中筋麵粉">中筋麵粉</option><option value="麥芽糖">麥芽糖</option>
+                <option value="豆腐乳">豆腐乳</option><option value="杏仁甜酒">杏仁甜酒</option>
+            </select>
+            <input type="number" id="stock-乾貨類" placeholder="庫存" class="input-small">
+            <input type="number" id="qty-乾貨類" value="1" class="input-small">
+            <select id="unit-乾貨類" class="input-unit">
+                <option value="罐">罐</option><option value="桶">桶</option><option value="斤">斤</option>
+                <option value="包">包</option><option value="瓶">瓶</option>
+            </select>
+            <button class="btn-add" onclick="addItem('乾貨類')">＋</button>
+        </div>
+
+        <div class="category-row">
+            <div class="cat-label">餐具類</div>
+            <select id="select-餐具類" class="input-item">
+                <option value="">-- 選擇品項 --</option>
+                <option value="8304-盒">8304-盒</option><option value="8305-蓋">8305-蓋</option>
+                <option value="1000-牛皮碗">1000-牛皮碗</option><option value="1000-凸蓋">1000-凸蓋</option>
+                <option value="1000-平蓋">1000-平蓋</option><option value="750-碗">750-碗</option>
+                <option value="750-蓋">750-蓋</option><option value="500-碗">500-碗</option>
+                <option value="260-碗(新玉山)">260-碗(新玉山)</option><option value="260-蓋(新玉山)">260-蓋(新玉山)</option>
+                <option value="YS-120蓋">YS-120蓋</option><option value="140-杯">140-杯</option>
+                <option value="75-蓋">75-蓋</option><option value="雙生筷">雙生筷</option>
+                <option value="茶匙(大)">茶匙(大)</option><option value="單包湯匙">單包湯匙</option>
+                <option value="點心盒">點心盒</option><option value="吐司盒">吐司盒</option>
+                <option value="方形蒸籠紙">方形蒸籠紙</option><option value="醬料杯">醬料杯</option>
+                <option value="耐熱袋7x9訂做">耐熱袋7x9訂做</option><option value="2斤袋">2斤袋</option>
+                <option value="3斤袋">3斤袋</option><option value="半斤袋">半斤袋</option>
+                <option value="嘉美清潔包特大">嘉美清潔包特大</option><option value="嘉美垃圾袋小紅">嘉美垃圾袋小紅</option>
+                <option value="垃圾袋黑">垃圾袋黑</option><option value="南亞保鮮膜(短)">南亞保鮮膜(短)</option>
+                <option value="保鮮膜(長)">保鮮膜(長)</option><option value="鋁箔(短)">鋁箔(短)</option>
+                <option value="雙色手套">雙色手套</option><option value="紫色手套">紫色手套</option>
+                <option value="膠圈">膠圈</option><option value="紙包牙籤">紙包牙籤</option>
+                <option value="百利海綿布">百利海綿布</option><option value="濾網(綠色)">濾網(綠色)</option>
+                <option value="白毛巾">白毛巾</option><option value="12x40pp膠帶">12x40pp膠帶</option>
+                <option value="48x80pp膠帶">48x80pp膠帶</option><option value="小瓦斯罐">小瓦斯罐</option>
+                <option value="漂白水">漂白水</option><option value="沙拉脫">沙拉脫</option>
+                <option value="濕紙巾">濕紙巾</option><option value="扇形紙">扇形紙</option>
+                <option value="優活小抽">優活小抽</option><option value="邦尼熊擦手紙">邦尼熊擦手紙</option>
+                <option value="舒潔擦手紙">舒潔擦手紙</option><option value="6杯袋">6杯袋</option>
+                <option value="4杯袋">4杯袋</option><option value="2杯袋">2杯袋</option>
+                <option value="洗碗機乾劑">洗碗機乾劑</option><option value="消毒酒精">消毒酒精</option>
+            </select>
+            <input type="number" id="stock-餐具類" placeholder="庫存" class="input-small">
+            <input type="number" id="qty-餐具類" value="1" class="input-small">
+            <select id="unit-餐具類" class="input-unit">
+                <option value="條">條</option><option value="包">包</option>
+                <option value="件">件</option><option value="個">個</option>
+                <option value="捲">捲</option><option value="打">打</option>
+            </select>
+            <button class="btn-add" onclick="addItem('餐具類')">＋</button>
+        </div>
+
+        <div class="category-row">
+            <div class="cat-label">產品類</div>
+            <select id="select-產品類" class="input-item">
+                <option value="">-- 選擇品項 --</option>
+                <option value="店用加熱包">店用加熱包</option>
+                <option value="冷凍禮盒">冷凍禮盒</option>
+            </select>
+            <input type="number" id="stock-產品類" placeholder="庫存" class="input-small">
+            <input type="number" id="qty-產品類" value="1" class="input-small">
+            <select id="unit-產品類" class="input-unit">
+                <option value="組">組</option><option value="盒">盒</option>
+            </select>
+            <button class="btn-add" onclick="addItem('產品類')">＋</button>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn-pdf" onclick="exportPDF()">正式 PDF 下載</button>
+            <button class="btn-jpg" onclick="exportJPG()">匯出 JPG 圖片</button>
+        </div>
+    </div>
+
+    <div id="word-template">
+        <div class="doc-header">
+            <h1 class="doc-title">物 料 叫 貨 單</h1>
+        </div>
+        <div class="doc-info">
+            <div><strong>店別：</strong> 元生補湯</div>
+            <div><strong>日期：</strong> <span id="current-date"></span></div>
+        </div>
+        <div id="tables-container">
+            <p style="color: #999; text-align: center; margin-top: 30px; font-size: 18px;">請選擇品項並點擊「＋」加入清單</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('zh-TW');
+        let orderData = {}; 
+
+        function addItem(category) {
+            const name = document.getElementById(`select-${category}`).value;
+            const stock = document.getElementById(`stock-${category}`).value;
+            const qty = document.getElementById(`qty-${category}`).value;
+            const unit = document.getElementById(`unit-${category}`).value;
+            
+            if (!name) return alert("請選擇品項！");
+
+            if (!orderData[category]) orderData[category] = [];
+            orderData[category].push({ 
+                name, 
+                stock: stock === "" ? "--" : stock, 
+                qty, 
+                unit 
+            });
+
+            document.getElementById(`stock-${category}`).value = "";
+            renderTables();
+        }
+
+        function removeItem(category, index) {
+            orderData[category].splice(index, 1);
+            if (orderData[category].length === 0) delete orderData[category];
+            renderTables();
+        }
+
+        function renderTables() {
+            const container = document.getElementById('tables-container');
+            container.innerHTML = '';
+            
+            const categories = Object.keys(orderData);
+            if (categories.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; margin-top: 30px; font-size: 18px;">請選擇品項並點擊「＋」加入清單</p>';
+                return;
+            }
+
+            categories.forEach(cat => {
+                let section = document.createElement('div');
+                section.className = 'category-section';
+                section.innerHTML = `
+                    <div class="category-title">類別：${cat}</div>
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 8%;">序</th>
+                                <th style="width: 47%;">品項名稱</th>
+                                <th style="width: 15%;">庫存</th>
+                                <th style="width: 20%;">叫貨量</th>
+                                <th style="width: 10%;" class="no-print">✕</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${orderData[cat].map((item, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td style="text-align: left;">${item.name}</td>
+                                    <td>${item.stock}</td>
+                                    <td><span class="qty-text">${item.qty}</span> ${item.unit}</td>
+                                    <td class="no-print">
+                                        <button class="no-print-btn" onclick="removeItem('${cat}', ${index})">🗑</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(section);
+            });
+        }
+
+        function toggleNoPrint(show) {
+            document.querySelectorAll('.no-print').forEach(el => el.style.display = show ? '' : 'none');
+        }
+
+        function exportPDF() {
+            if (Object.keys(orderData).length === 0) return alert("訂單是空的！");
+            toggleNoPrint(false);
+            const element = document.getElementById('word-template');
+            const opt = {
+                margin: 5,
+                filename: `元生叫貨單_${new Date().toISOString().slice(0,10)}.pdf`,
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save().then(() => toggleNoPrint(true));
+        }
+
+        function exportJPG() {
+            if (Object.keys(orderData).length === 0) return alert("訂單是空的！");
+            toggleNoPrint(false);
+            const element = document.getElementById('word-template');
+            html2canvas(element, { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `元生叫貨單_${new Date().toISOString().slice(0,10)}.jpg`;
+                link.href = canvas.toDataURL("image/jpeg", 0.9);
+                link.click();
+                toggleNoPrint(true);
+            });
+        }
+    </script>
+</body>
+</html>
