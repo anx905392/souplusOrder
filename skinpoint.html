@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專屬保養品集點專區</title>
+    <!-- FontAwesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6b8cce;
+            --primary-hover: #5472b5;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #2c3e50;
+            --text-sub: #6c7a89;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 15px;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 35px 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 20px rgba(142, 197, 252, 0.4);
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        p.subtitle {
+            font-size: 14px;
+            color: var(--text-sub);
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="password"]:focus {
+            border-color: var(--primary-color);
+            background: #fff;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary-color), #8ea8e5);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(107, 140, 206, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 12px;
+            min-height: 20px;
+        }
+
+        #protected-content {
+            display: none;
+            text-align: left;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .welcome-header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #edf2f7;
+            margin-bottom: 20px;
+        }
+
+        .badge-count {
+            display: inline-block;
+            background: #eef2ff;
+            color: var(--primary-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .link-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .link-card {
+            background: #ffffff;
+            border: 1px solid #edf2f7;
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            color: var(--text-main);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            transition: all 0.25s ease;
+        }
+
+        .link-card:hover {
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+            background: #fafcff;
+        }
+
+        .link-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .link-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #f0f4ff;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .link-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .link-title { font-weight: 600; font-size: 15px; }
+        .link-sub { font-size: 12px; color: var(--text-sub); }
+        .btn-go { color: var(--primary-color); font-size: 14px; font-weight: 600; }
+
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #edf2f7;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 登入卡片 -->
+        <div id="login-card" class="card">
+            <div class="header-icon"><i class="fa-solid fa-lock"></i></div>
+            <h2>專屬保養集點頁面</h2>
+            <p class="subtitle">內容已加密保護<br>請輸入專屬密碼解密查看集點連結</p>
+            
+            <input type="password" id="password-input" placeholder="請輸入密碼" onkeypress="if(event.key==='Enter') unlockContent()">
+            <button class="btn-submit" onclick="unlockContent()"><i class="fa-solid fa-key"></i> 解密進入</button>
+            <div id="error-msg" class="error-msg"></div>
+        </div>
+
+        <!-- 解密後顯示的區域 -->
+        <div id="protected-content" class="card">
+            <div class="welcome-header">
+                <h2><i class="fa-solid fa-sparkles" style="color: #f6ad55;"></i> 專屬保養集點專區</h2>
+                <span class="badge-count"><i class="fa-solid fa-gift"></i> 共 11 組聯合利華掃碼集點連結</span>
+            </div>
+            
+            <div id="dynamic-link-list" class="link-list"></div>
+
+            <div class="footer-note">
+                <i class="fa-solid fa-shield-halved"></i> 專屬私人頁面．點擊按鈕即可開啓掃碼頁面
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const encryptedData = "OkQeTUxDQltJWUpTWl9PExhQVFZHBBRYTU8cXQ4BH1cHQQxEVDBJV1pfFUsFWlldFFIgFRwLd0gWVh5NCgFIUgQfDkJBUkNKVhtQR0URFUwWF0BaCAhYTFZaXQQQE0sWR0ZOChleUV0OE1tTC35DXggIAhRLUFAPQ0V/WxYCJS0QWF1rAA1WE2hsRXkvPFQVGBFZFRIGSgIcHhINH1cWRl8IChNPXUEfFRFZVVdUWA9ZBAQdAXcRCR9XTB5CAgcYHAt1UkRVMm9aUAEbMQx/bnwEWC8EcxofEUMOAk1IQAtOSQVSUV0fFAgfVV1FVBNIAk4XX14GDxgGSg4UUyAGVlFdRUwVFVhWFgInBVMKfEJpEipBbmgEfjs2NFxTRxNNRlRRTEdBElxZFktYWA9IA1dRX1QXAwQXTEQeDQkRUFYMQ1xDRH9IXFgPEltKW1JfRFUwWh0AdQ4MAnR0UFoRVjwPc1tSOURaGRpbRRUWBQMXHEIKDxgXTV1YDQMAXEodRRZJGlZfWl9eFEscCnVBDg8YTRVAUgAIUwp+UBRSIgFWWVQDWTAcXkxSVjglPBsUExMJEgJJSwkeThUdUFYdRA8PGlxOVkNPEgEWVFxWCAhJSwUWAycWGVBWRxwSBRdXHQB3AkNFfUFxYwZeQHJuUGUOISIMDREdQUQeTUxDQltJWUpTWl9PExhQVFZHBBRYTU8cXQ4BH1cHQQxEVDBJV1pfFUsFWlldFFIgFRwLd2UiNzBUWUBnFzNBW1wRHUFEHk1MQ0JbSVlKU1pfTxMYUFRWRwQUWE1PHF0OAR9XB0EMRFQwSVdaXxVLBVpZXRRSIBUcC3cJLSsXX3p0eBECD1wMVUlDSlYbUEdFERVMFhdAWggIWExWWl0EEBNLFkdGTgoZXlFdDhNbUwt+Q14ICAIUS1BQD0NFf1sWAiVTOlEBRmsqAQJwd2tbLSpUFRgRWRUSBkoCHB4SDR9XFkZfCAoTT11BHxURWVVXVFgPWQQEHQF3EQkfV0weQgIHGBwLdVJEVTJOYgt8BwUaWElHSzstPWoabg==";
+
+        function unlockContent() {
+            const password = document.getElementById("password-input").value.trim();
+            const errorMsg = document.getElementById("error-msg");
+
+            if (!password) {
+                errorMsg.innerText = "請輸入密碼！";
+                return;
+            }
+
+            try {
+                const decodedStr = atob(encryptedData);
+                
+                let decryptedJson = "";
+                for (let i = 0; i < decodedStr.length; i++) {
+                    const keyChar = password[i % password.length];
+                    decryptedJson += String.fromCharCode(decodedStr.charCodeAt(i) ^ keyChar.charCodeAt(0));
+                }
+
+                const urls = JSON.parse(decryptedJson);
+
+                let html = "";
+                urls.forEach((url, i) => {
+                    const num = String(i + 1).padStart(2, '0');
+                    html += `
+                        <a href="${url}" target="_blank" class="link-card">
+                            <div class="link-info">
+                                <div class="link-icon"><i class="fa-solid fa-coins"></i></div>
+                                <div class="link-text">
+                                    <span class="link-title">保養集點連結 #${num}</span>
+                                    <span class="link-sub">聯合利華點數掃描</span>
+                                </div>
+                            </div>
+                            <span class="btn-go">前往 <i class="fa-solid fa-chevron-right"></i></span>
+                        </a>
+                    `;
+                });
+
+                document.getElementById("dynamic-link-list").innerHTML = html;
+                document.getElementById("login-card").style.display = "none";
+                document.getElementById("protected-content").style.display = "block";
+
+            } catch (e) {
+                errorMsg.innerText = "密碼錯誤，無法解密專屬頁面！";
+                const input = document.getElementById("password-input");
+                input.style.borderColor = "#e74c3c";
+                setTimeout(() => {
+                    input.style.borderColor = "#e1e8ed";
+                }, 1500);
+            }
+        }
+    </script>
+</body>
+</html>
